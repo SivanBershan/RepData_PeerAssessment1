@@ -1,0 +1,103 @@
+---
+title: "ActivityMonitoring"
+author: "Sivan Bershan"
+date: "July 20, 2014"
+output: html_document
+---
+
+read the csv and show sample data 
+```{r, echo = TRUE}
+data = read.csv("activity.csv", sep = ",")
+head(data, 30)
+```
+
+1. The mean number of steps: 
+What is mean total number of steps taken per day?
+For this part of the assignment, you can ignore the missing values in the dataset.
+Make a histogram of the total number of steps taken each day
+Calculate and report the mean and median total number of steps taken per day
+
+```{r, echo = TRUE}
+MeanNrSteps = mean(data$steps, na.rm = T)
+print(MeanNrSteps)
+```
+
+When ignoring the NA's, the mean number of steps is 37.38.
+
+
+2. What is the average daily activity pattern?
+
+Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+
+```{r, echo = TRUE}
+library(dplyr)
+res = summarize(group_by(data, interval), avgsteps = mean(steps, na.rm = T))
+
+plot(res, type = "l")
+
+```
+
+The person probably does sports in the morning and goes to work at 9. The person has several activities over the day where walking is required and sits in front of the TV from about 5.30 pm. 
+
+
+
+3. Imputing missing values
+
+There are a number of days/intervals where there are missing values (coded as NA). The presence of missing days may introduce bias into some calculations or summaries of the data.
+a) Calculate and report the total number of rows with NAs. 
+b) Devise a strategy for filling in all of the missing values in the dataset
+
+
+Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r, echo = TRUE}
+nrNa = nrow(subset(data, is.na(steps)))
+data2 = data
+data2 = merge(data2, res)
+data2$steps[is.na(data2$steps)] = data2$avgsteps[is.na(data$steps)]
+data2$avgsteps = NULL
+hist(data2$steps)
+
+hist(data$steps)
+
+mean(data$steps, na.rm = T)
+mean(data2$steps)
+
+median(data$steps, na.rm = T)
+median(data2$steps)
+
+TotalNrSteps = sum(data2$steps)
+BeforeNRSteps = sum(data$steps, na.rm = T)
+```
+
+The difference between the means is roughly 0.5. The median remains the same. The total number of steps is 664277.8 after the correction as opposed to  570608 before the correction. 
+
+
+4. Are there differences in activity patterns between weekdays and weekends?
+
+For this part the weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
+
+Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+
+
+```{r, echo = TRUE}
+library(ggplot2)
+data2$weekdays = weekdays(as.Date(data2$date))
+data2$weekends = data2$weekdays == "Sunday" | data2$weekdays == "Saturday"
+ByDay = summarize(group_by(data2, weekends), avgsteps = mean(steps))
+
+ByDay_and_Interval = summarize(group_by(data2, weekends, interval), avgsteps = mean(steps))
+
+qplot(interval, avgsteps, data = ByDay_and_Interval, geom = "line") + facet_grid(~weekends)
+
+```
+
+The person probably does sports in the morning and goes to work at 9. The person has several activities over the day where walking is required and sits in front of the TV from about 5.30 pm. 
+
+Comparing the results on weekdays or weekends, but person is more active on the weekends (42.7 mean as opposed to 36.04 over the week)
